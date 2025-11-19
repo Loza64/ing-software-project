@@ -5,8 +5,6 @@ import com.pnc.project.dto.Response;
 import com.pnc.project.dto.request.usuario.Login;
 import com.pnc.project.dto.request.usuario.UsuarioRequest;
 import com.pnc.project.dto.response.usuario.UsuarioResponse;
-import com.pnc.project.entities.Materia;
-import com.pnc.project.entities.Rol;
 import com.pnc.project.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

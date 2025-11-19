@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.List;
 
-@Table (name = "usuario")
+@Table(name = "usuario")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -35,7 +35,7 @@ public class Usuario {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_rol", referencedColumnName = "id_rol")
     private Rol rol;
 

@@ -16,20 +16,16 @@ public class RolController {
 
     private final RolService rolService;
 
-    /* -------- GET /api/roles ------------- */
     @GetMapping
     public ResponseEntity<List<RolResponse>> findAll() {
         return ResponseEntity.ok(rolService.findAll());
     }
 
-    /* -------- GET /api/roles/{name} ------ */
     @GetMapping("/{name}")
     public ResponseEntity<RolResponse> findByName(@PathVariable RolNombre name) {
-        /*  ¡YA NO conviertas a String!  */
         return ResponseEntity.ok(rolService.findByName(name));
     }
 
-    /* -------- POST (bloqueado) ----------- */
     @PostMapping
     public ResponseEntity<Void> save() {
         throw new UnsupportedOperationException(

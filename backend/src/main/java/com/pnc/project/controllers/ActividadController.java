@@ -1,6 +1,5 @@
 package com.pnc.project.controllers;
 
-import com.pnc.project.dto.request.actividad.ActividadRequest;
 import com.pnc.project.dto.response.actividad.ActividadResponse;
 import com.pnc.project.service.ActividadService;
 import com.pnc.project.utils.enums.TipoActividad;

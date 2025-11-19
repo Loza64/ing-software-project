@@ -51,6 +51,14 @@ public class JwtConfig {
         }
     }
 
+    public Integer extractIdUser(String token) {
+        Claims claims = extracClaims(token);
+        if (claims == null) {
+            return null;
+        }
+        return claims.get("id", Integer.class);
+    }
+
     public boolean isTokenExpired(String token) {
         Claims claims = extracClaims(token);
         return claims == null || claims.getExpiration().before(new Date());
