@@ -126,29 +126,21 @@ public class UsuarioController {
     // Solicitar recuperación de contraseña
     @PostMapping("/forgot-password")
     public ResponseEntity<Object> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        System.out.println("=== CONTROLLER: forgotPassword ===");
-        System.out.println("Email recibido en controller: " + request.getEmail());
-        
         try {
             usuarioService.forgotPassword(request.getEmail());
-            System.out.println("Controller: forgotPassword completado exitosamente");
             return Response.build(HttpStatus.OK.value(), 
                     "Se ha enviado un email con las instrucciones para recuperar tu contraseña", null);
         } catch (RuntimeException e) {
-            System.err.println("=== ERROR EN CONTROLLER forgotPassword ===");
-            System.err.println("Mensaje: " + e.getMessage());
-            System.err.println("Causa: " + (e.getCause() != null ? e.getCause().getMessage() : "Sin causa"));
-            e.printStackTrace();
-            
             // Por seguridad, siempre devolvemos el mismo mensaje aunque el email no exista
             // Esto previene que se descubran emails registrados en el sistema
-            // Pero logueamos el error real para depuración
+            // Los errores se registran en los logs del servicio
             return Response.build(HttpStatus.OK.value(), 
                     "Si el email existe, recibirás un mensaje con las instrucciones para recuperar tu contraseña", null);
         }
     }
 
-    // Validar token de recuperación de contraseña
+    // Validar token de recuperación de contraseña (OPCIONAL - solo si necesitas validar antes de mostrar el formulario)
+    // Nota: El endpoint /reset-password ya valida el token automáticamente, este endpoint es opcional
     @PostMapping("/validate-reset-token")
     public ResponseEntity<Object> validateResetToken(@Valid @RequestBody ValidateTokenRequest request) {
         try {
@@ -166,7 +158,8 @@ public class UsuarioController {
         }
     }
 
-    // Cambiar contraseña con token
+    // Cambiar contraseña con token (valida el token automáticamente)
+    // Este endpoint valida el token y cambia la contraseña en un solo paso
     @PostMapping("/reset-password")
     public ResponseEntity<Object> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         try {

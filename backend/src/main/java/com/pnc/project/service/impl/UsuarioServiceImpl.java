@@ -138,35 +138,15 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public void forgotPassword(String email) {
-        System.out.println("=== INICIO forgotPassword ===");
-        System.out.println("Email recibido: " + email);
-        
         // Verificar si el email existe en la base de datos
         Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    System.err.println("ERROR: Email no encontrado en BD: " + email);
-                    return new RuntimeException("Email no encontrado");
-                });
+                .orElseThrow(() -> new RuntimeException("Email no encontrado"));
 
-        System.out.println("Usuario encontrado: " + usuario.getEmail());
-        
         // Generar token JWT con claims personalizados (email y purpose)
         String token = jwtConfig.createPasswordResetToken(email);
-        System.out.println("Token generado (primeros 20 caracteres): " + 
-                (token != null && token.length() > 20 ? token.substring(0, 20) + "..." : token));
 
         // Enviar email con el token
-        try {
-            System.out.println("Intentando enviar email a: " + email);
-            emailService.sendPasswordResetEmail(email, token);
-            System.out.println("Email enviado exitosamente");
-        } catch (Exception e) {
-            System.err.println("ERROR AL ENVIAR EMAIL: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Error al enviar el email: " + e.getMessage(), e);
-        }
-        
-        System.out.println("=== FIN forgotPassword ===");
+        emailService.sendPasswordResetEmail(email, token);
     }
 
     @Override
@@ -188,21 +168,26 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public void resetPassword(String token, String newPassword) {
-        // Extraer el email del token
-        String email = jwtConfig.extractEmailFromPasswordResetToken(token);
-        
-        if (email == null) {
-            throw new RuntimeException("Token inválido o expirado");
+        // Validar que el token no esté vacío
+        if (token == null || token.trim().isEmpty()) {
+            throw new RuntimeException("Token es requerido");
         }
-
-        // Buscar el usuario
-        Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         // Validar que la nueva contraseña no esté vacía
         if (newPassword == null || newPassword.trim().isEmpty()) {
             throw new RuntimeException("La nueva contraseña no puede estar vacía");
         }
+
+        // Extraer y validar el email del token (esto valida automáticamente el token)
+        String email = jwtConfig.extractEmailFromPasswordResetToken(token);
+        
+        if (email == null) {
+            throw new RuntimeException("Token inválido o expirado. Por favor solicita un nuevo token de recuperación.");
+        }
+
+        // Buscar el usuario
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado asociado a este token"));
 
         // Encriptar y actualizar la contraseña
         usuario.setPassword(passwordEncoder.encode(newPassword));

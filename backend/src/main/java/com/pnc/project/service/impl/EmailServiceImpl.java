@@ -32,77 +32,36 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendPasswordResetEmail(String to, String token) {
-        System.out.println("=== EMAIL SERVICE: sendPasswordResetEmail ===");
-        System.out.println("Destinatario: " + to);
-        System.out.println("Remitente configurado: " + fromEmail);
-        System.out.println("Frontend URL: " + frontendUrl);
-        System.out.println("Backend URL: " + backendUrl);
-        
         try {
             log.info("Preparando envío de email de recuperación de contraseña a: {}", to);
-            log.debug("URL frontend configurada: {}, URL backend configurada: {}", frontendUrl, backendUrl);
             
-            System.out.println("Creando MimeMessage...");
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            System.out.println("Configurando remitente: " + fromEmail);
             helper.setFrom(fromEmail);
-            
-            System.out.println("Configurando destinatario: " + to);
             helper.setTo(to);
-            
-            System.out.println("Configurando asunto...");
             helper.setSubject("Recuperación de Contraseña");
 
             // Codificar el token para la URL (los tokens JWT pueden contener caracteres especiales)
             String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);
             
-            // Construir la URL de reset (usar frontend si está configurado, si no, usar backend)
-            // Asumiendo que el frontend tiene una ruta como /reset-password o /forgot-password/reset
-            // Si tu frontend maneja el reset en otra ruta, ajusta esta URL
+            // Construir la URL de reset (usar frontend si está configurado)
             String resetUrl = frontendUrl + "/reset-password?token=" + encodedToken;
             
-            log.debug("URL de reset generada: {}", resetUrl);
-            System.out.println("URL de reset: " + resetUrl);
-            
-            System.out.println("Construyendo cuerpo del email...");
             String emailBody = buildPasswordResetEmailBody(token, resetUrl);
-
-            System.out.println("Configurando cuerpo del email (HTML)...");
             helper.setText(emailBody, true); // true indica que es HTML
 
-            System.out.println("Intentando enviar email...");
             log.info("Enviando email de recuperación de contraseña a: {}", to);
             mailSender.send(message);
-            
-            System.out.println("✅ Email enviado exitosamente!");
             log.info("Email de recuperación de contraseña enviado exitosamente a: {}", to);
             
         } catch (MessagingException e) {
-            System.err.println("❌ ERROR MessagingException: " + e.getMessage());
-            System.err.println("Tipo: " + e.getClass().getName());
-            if (e.getCause() != null) {
-                System.err.println("Causa: " + e.getCause().getMessage());
-                e.getCause().printStackTrace();
-            }
-            e.printStackTrace();
             log.error("Error de mensajería al enviar email de recuperación de contraseña a: {}", to, e);
             throw new RuntimeException("Error al enviar el email de recuperación de contraseña: " + e.getMessage(), e);
         } catch (MailException e) {
-            System.err.println("❌ ERROR MailException: " + e.getMessage());
-            System.err.println("Tipo: " + e.getClass().getName());
-            if (e.getCause() != null) {
-                System.err.println("Causa: " + e.getCause().getMessage());
-                e.getCause().printStackTrace();
-            }
-            e.printStackTrace();
             log.error("Error de Spring Mail al enviar email de recuperación de contraseña a: {}", to, e);
             throw new RuntimeException("Error al enviar el email de recuperación de contraseña: " + e.getMessage(), e);
         } catch (Exception e) {
-            System.err.println("❌ ERROR inesperado: " + e.getMessage());
-            System.err.println("Tipo: " + e.getClass().getName());
-            e.printStackTrace();
             log.error("Error inesperado al enviar email de recuperación de contraseña a: {}", to, e);
             throw new RuntimeException("Error inesperado al enviar el email de recuperación de contraseña: " + e.getMessage(), e);
         }
