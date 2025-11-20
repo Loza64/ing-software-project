@@ -2,7 +2,10 @@ package com.pnc.project.controllers;
 
 import com.pnc.project.config.JwtConfig;
 import com.pnc.project.dto.Response;
+import com.pnc.project.dto.request.usuario.ForgotPasswordRequest;
 import com.pnc.project.dto.request.usuario.Login;
+import com.pnc.project.dto.request.usuario.ResetPasswordRequest;
+import com.pnc.project.dto.request.usuario.ValidateTokenRequest;
 import com.pnc.project.dto.request.usuario.UsuarioRequest;
 import com.pnc.project.dto.response.usuario.UsuarioResponse;
 import com.pnc.project.service.UsuarioService;
@@ -117,6 +120,65 @@ public class UsuarioController {
             return Response.build(HttpStatus.ACCEPTED.value(), "welcome " + user.getNombre(), token);
         } else {
             return Response.build(HttpStatus.UNAUTHORIZED.value(), "email or password incorrect", null);
+        }
+    }
+
+    // Solicitar recuperación de contraseña
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Object> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        System.out.println("=== CONTROLLER: forgotPassword ===");
+        System.out.println("Email recibido en controller: " + request.getEmail());
+        
+        try {
+            usuarioService.forgotPassword(request.getEmail());
+            System.out.println("Controller: forgotPassword completado exitosamente");
+            return Response.build(HttpStatus.OK.value(), 
+                    "Se ha enviado un email con las instrucciones para recuperar tu contraseña", null);
+        } catch (RuntimeException e) {
+            System.err.println("=== ERROR EN CONTROLLER forgotPassword ===");
+            System.err.println("Mensaje: " + e.getMessage());
+            System.err.println("Causa: " + (e.getCause() != null ? e.getCause().getMessage() : "Sin causa"));
+            e.printStackTrace();
+            
+            // Por seguridad, siempre devolvemos el mismo mensaje aunque el email no exista
+            // Esto previene que se descubran emails registrados en el sistema
+            // Pero logueamos el error real para depuración
+            return Response.build(HttpStatus.OK.value(), 
+                    "Si el email existe, recibirás un mensaje con las instrucciones para recuperar tu contraseña", null);
+        }
+    }
+
+    // Validar token de recuperación de contraseña
+    @PostMapping("/validate-reset-token")
+    public ResponseEntity<Object> validateResetToken(@Valid @RequestBody ValidateTokenRequest request) {
+        try {
+            boolean isValid = usuarioService.validateResetToken(request.getToken());
+            if (isValid) {
+                return Response.build(HttpStatus.OK.value(), 
+                        "Token válido", true);
+            } else {
+                return Response.build(HttpStatus.BAD_REQUEST.value(), 
+                        "Token inválido o expirado", false);
+            }
+        } catch (Exception e) {
+            return Response.build(HttpStatus.BAD_REQUEST.value(), 
+                    "Error al validar el token: " + e.getMessage(), false);
+        }
+    }
+
+    // Cambiar contraseña con token
+    @PostMapping("/reset-password")
+    public ResponseEntity<Object> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        try {
+            usuarioService.resetPassword(request.getToken(), request.getNewPassword());
+            return Response.build(HttpStatus.OK.value(), 
+                    "Contraseña actualizada exitosamente", null);
+        } catch (RuntimeException e) {
+            return Response.build(HttpStatus.BAD_REQUEST.value(), 
+                    e.getMessage(), null);
+        } catch (Exception e) {
+            return Response.build(HttpStatus.INTERNAL_SERVER_ERROR.value(), 
+                    "Error al cambiar la contraseña: " + e.getMessage(), null);
         }
     }
 }

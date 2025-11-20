@@ -44,7 +44,8 @@ public class SaveEndpoints implements ApplicationListener<ApplicationReadyEvent>
     }
 
     private void processEndpoint(String path, RequestMappingInfo info) {
-        if (Set.of("/error", "/api/auth/login", "/api/save", "/api/registros/test/horas").contains(path))
+        if (Set.of("/error", "/api/auth/login", "/api/forgot-password", "/api/validate-reset-token", 
+                "/api/reset-password", "/api/save", "/api/registros/test/horas").contains(path))
             return;
 
         var methods = info.getMethodsCondition().getMethods();

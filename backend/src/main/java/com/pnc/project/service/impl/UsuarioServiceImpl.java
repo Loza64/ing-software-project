@@ -7,6 +7,8 @@ import com.pnc.project.entities.Usuario;
 import com.pnc.project.entities.UsuarioXMateria;
 import com.pnc.project.repository.UsuarioRepository;
 import com.pnc.project.repository.UsuarioXMateriaRepository;
+import com.pnc.project.config.JwtConfig;
+import com.pnc.project.service.EmailService;
 import com.pnc.project.service.RolService;
 import com.pnc.project.service.UsuarioService;
 import com.pnc.project.utils.mappers.RolMapper;
@@ -23,13 +25,17 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final UsuarioXMateriaRepository usuarioXMateriaRepository;
     private final RolService rolService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final JwtConfig jwtConfig;
 
     public UsuarioServiceImpl(UsuarioRepository repository, UsuarioXMateriaRepository usuarioXMateriaRepository,
-            RolService rolService, PasswordEncoder passwordEncoder) {
+            RolService rolService, PasswordEncoder passwordEncoder, EmailService emailService, JwtConfig jwtConfig) {
         this.usuarioRepository = repository;
         this.usuarioXMateriaRepository = usuarioXMateriaRepository;
         this.rolService = rolService;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.jwtConfig = jwtConfig;
     }
 
     @Override
@@ -128,6 +134,79 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     public Usuario infoAuthById(int id) {
         return usuarioRepository.findById(id).orElseThrow(() -> new RuntimeException("Usuario not found"));
+    }
+
+    @Override
+    public void forgotPassword(String email) {
+        System.out.println("=== INICIO forgotPassword ===");
+        System.out.println("Email recibido: " + email);
+        
+        // Verificar si el email existe en la base de datos
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    System.err.println("ERROR: Email no encontrado en BD: " + email);
+                    return new RuntimeException("Email no encontrado");
+                });
+
+        System.out.println("Usuario encontrado: " + usuario.getEmail());
+        
+        // Generar token JWT con claims personalizados (email y purpose)
+        String token = jwtConfig.createPasswordResetToken(email);
+        System.out.println("Token generado (primeros 20 caracteres): " + 
+                (token != null && token.length() > 20 ? token.substring(0, 20) + "..." : token));
+
+        // Enviar email con el token
+        try {
+            System.out.println("Intentando enviar email a: " + email);
+            emailService.sendPasswordResetEmail(email, token);
+            System.out.println("Email enviado exitosamente");
+        } catch (Exception e) {
+            System.err.println("ERROR AL ENVIAR EMAIL: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al enviar el email: " + e.getMessage(), e);
+        }
+        
+        System.out.println("=== FIN forgotPassword ===");
+    }
+
+    @Override
+    public boolean validateResetToken(String token) {
+        try {
+            // Extraer el email del token
+            String email = jwtConfig.extractEmailFromPasswordResetToken(token);
+            
+            if (email == null) {
+                return false;
+            }
+
+            // Verificar que el usuario existe
+            return usuarioRepository.findByEmail(email).isPresent();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        // Extraer el email del token
+        String email = jwtConfig.extractEmailFromPasswordResetToken(token);
+        
+        if (email == null) {
+            throw new RuntimeException("Token inválido o expirado");
+        }
+
+        // Buscar el usuario
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Validar que la nueva contraseña no esté vacía
+        if (newPassword == null || newPassword.trim().isEmpty()) {
+            throw new RuntimeException("La nueva contraseña no puede estar vacía");
+        }
+
+        // Encriptar y actualizar la contraseña
+        usuario.setPassword(passwordEncoder.encode(newPassword));
+        usuarioRepository.save(usuario);
     }
 
 }

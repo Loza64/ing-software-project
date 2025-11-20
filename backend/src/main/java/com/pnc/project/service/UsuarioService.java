@@ -39,4 +39,13 @@ public interface UsuarioService {
     // login
     UsuarioResponse login(String email, String password);
 
+    // Recuperación de contraseña
+    void forgotPassword(String email);
+
+    // Validar token de recuperación de contraseña
+    boolean validateResetToken(String token);
+
+    // Cambiar contraseña con token
+    void resetPassword(String token, String newPassword);
+
 }
