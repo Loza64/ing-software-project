@@ -69,6 +69,7 @@ public class JwtConfig {
 
     /**
      * Crea un token JWT para recuperación de contraseña con claims personalizados
+     * 
      * @param email Email del usuario
      * @return Token JWT con email y purpose: "password_reset"
      */
@@ -84,17 +85,12 @@ public class JwtConfig {
                 .compact();
     }
 
-    /**
-     * Extrae el email del token de password reset
-     * @param token Token JWT
-     * @return Email del usuario o null si el token es inválido
-     */
     public String extractEmailFromPasswordResetToken(String token) {
         Claims claims = extracClaims(token);
         if (claims == null) {
             return null;
         }
-        // Verificar que el token sea para password reset
+
         String purpose = claims.get("purpose", String.class);
         if (!"password_reset".equals(purpose)) {
             return null;

@@ -15,40 +15,37 @@ import com.pnc.project.filters.AuthenticationFilter;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final AuthenticationFilter authenticationFilter;
-    private final AuthorizationFilter authorizationFilter;
+        private final AuthenticationFilter authenticationFilter;
+        private final AuthorizationFilter authorizationFilter;
 
-    public SecurityConfig(
-            AuthenticationFilter authenticationFilter,
-            AuthorizationFilter authorizationFilter) {
-        this.authenticationFilter = authenticationFilter;
-        this.authorizationFilter = authorizationFilter;
-    }
+        public SecurityConfig(
+                        AuthenticationFilter authenticationFilter,
+                        AuthorizationFilter authorizationFilter) {
+                this.authenticationFilter = authenticationFilter;
+                this.authorizationFilter = authorizationFilter;
+        }
 
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        @Bean
+        SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/refresh",
-                                "/api/forgot-password",
-                                "/api/validate-reset-token",
-                                "/api/reset-password"
-                        ).permitAll()
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(
+                                                                "/api/auth/login",
+                                                                "/api/auth/refresh",
+                                                                "/api/forgot-password",
+                                                                "/api/validate-reset-token",
+                                                                "/api/reset-password",
+                                                                "api/save",
+                                                                "/notifications/**")
+                                                .permitAll().anyRequest().authenticated())
 
-                        .requestMatchers("/notifications/**").permitAll()
+                                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                                .addFilterAfter(authorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
-                        .anyRequest().authenticated()
-                )
-
-                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(authorizationFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
+                return http.build();
+        }
 }

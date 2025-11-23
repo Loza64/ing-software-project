@@ -1,8 +1,12 @@
 package com.pnc.project.filters;
 
 import java.io.IOException;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -36,7 +40,6 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        System.out.println("[AUTH FILTER] Revisando path: " + path);
 
         return path.equals("/api/auth/login")
                 || path.equals("/api/forgot-password")
@@ -44,7 +47,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 || path.equals("/api/reset-password")
                 || path.equals("/api/save")
                 || path.equals("/api/registros/test/horas")
-                || path.startsWith("/notifications"); 
+                || path.startsWith("/notifications");
     }
 
     @Override
@@ -85,8 +88,14 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            Set<GrantedAuthority> authorities = user.getRol().getPermissions().stream()
+                    .map(permission -> new SimpleGrantedAuthority(permission.getMethod() + ":" + permission.getPath()))
+                    .collect(Collectors.toSet());
+
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRol().getNombre()));
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    user, null, authorities);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
