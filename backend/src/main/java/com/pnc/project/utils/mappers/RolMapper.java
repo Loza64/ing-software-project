@@ -8,16 +8,17 @@ import java.util.List;
 
 public final class RolMapper {
 
-    private RolMapper() { }   // evitar instancias
+    private RolMapper() {
+    } // evitar instancias
 
-    /* ---------- Request → Entity  (crear) ---------- */
+    /* ---------- Request → Entity (crear) ---------- */
     public static Rol toEntityCreate(RolRequest dto) {
         return Rol.builder()
                 .nombre(dto.getNombre())
                 .build();
     }
 
-    /* ---------- Response → Entity  (opcional) ---------- */
+    /* ---------- Response → Entity (opcional) ---------- */
     public static Rol toEntity(RolResponse dto) {
         return Rol.builder()
                 .idRol(dto.getIdRol())
@@ -30,6 +31,7 @@ public final class RolMapper {
         return RolResponse.builder()
                 .idRol(rol.getIdRol())
                 .nombre(rol.getNombre())
+                .permisos(rol.getPermissions())
                 .build();
     }
 

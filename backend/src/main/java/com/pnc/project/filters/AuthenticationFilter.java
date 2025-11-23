@@ -28,12 +28,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class AuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtConfig jwtUtil;
     private final UsuarioService userService;
 
-    public JwtAuthenticationFilter(@Lazy JwtConfig jwtUtil, UsuarioService userService) {
+    public AuthenticationFilter(@Lazy JwtConfig jwtUtil, UsuarioService userService) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
         System.out.println(path);
-        return path.equals("/api/auth/login") || path.equals("/api/forgot-password") 
+        return path.equals("/api/auth/login") || path.equals("/api/forgot-password")
                 || path.equals("/api/validate-reset-token") || path.equals("/api/reset-password")
                 || path.equals("/api/save") || path.equals("/api/registros/test/horas");
     }
