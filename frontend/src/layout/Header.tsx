@@ -3,6 +3,7 @@ import { Menu, Bell, UserCircle, CheckCircle2, XCircle, Clock } from 'lucide-rea
 import { useNavigate } from 'react-router-dom';
 import useLayout from '../hooks/useLayout';
 import useAuth from '../hooks/useAuth';
+import { useNotification } from '../components/notifications/NotificationContext';
 
 interface RegistroLocal {
     id: number;
@@ -14,6 +15,8 @@ const Header: React.FC = () => {
     const { toggleSidebar } = useLayout();
     const { user, signout } = useAuth();
     const navigate = useNavigate();
+
+    const { notifySuccess, notifyError } = useNotification();   
 
     const [notifications, setNotifications] = useState<RegistroLocal[]>([]);
     const [showNotif, setShowNotif] = useState(false);
@@ -44,7 +47,6 @@ const Header: React.FC = () => {
     }, []);
 
     const handleNotificationClick = (id: number) => {
-        // Marcar como visto (remover de lista)
         setNotifications(prev => prev.filter(n => n.id !== id));
         const seen = JSON.parse(localStorage.getItem('seenNotificaciones') || '[]');
         localStorage.setItem('seenNotificaciones', JSON.stringify([...seen, id]));
@@ -57,11 +59,22 @@ const Header: React.FC = () => {
         }
     };
 
-    // Filtrar ya vistas
     const filteredNotifications = notifications.filter(n => {
         const seen = JSON.parse(localStorage.getItem('seenNotificaciones') || '[]');
         return !seen.includes(n.id);
     });
+
+    
+    const handleLogout = () => {
+        try {
+            signout();                 
+            notifySuccess("Sesión cerrada correctamente 👋");  
+            setShowUserMenu(false);   
+            navigate('/');            
+        } catch (error) {
+            notifyError("Hubo un error al cerrar sesión ❌");
+        }
+    };
 
     return (
         <header className="sticky top-0 z-20 w-full bg-[rgb(0,60,113)] text-white shadow flex items-center justify-between px-6 py-3">
@@ -73,6 +86,7 @@ const Header: React.FC = () => {
             </div>
 
             <div className="flex items-center space-x-3">
+
                 {/* Notificaciones */}
                 <div className="relative" ref={notifRef}>
                     <button onClick={() => setShowNotif(v => !v)} className="relative p-2 hover:bg-white/20 rounded-full transition">
@@ -83,6 +97,7 @@ const Header: React.FC = () => {
                             </span>
                         )}
                     </button>
+
                     {showNotif && (
                         <div className="absolute right-0 mt-2 w-80 bg-white text-black rounded-lg shadow-lg overflow-hidden">
                             <div className="flex items-center justify-between px-4 py-2 bg-[rgb(0,60,113)] text-white">
@@ -124,6 +139,7 @@ const Header: React.FC = () => {
                     <button onClick={() => setShowUserMenu(v => !v)} className="p-2 hover:bg-white/20 rounded-full transition">
                         <UserCircle size={24} />
                     </button>
+
                     {showUserMenu && (
                         <div className="absolute right-0 mt-3 w-48 bg-white text-black rounded-lg shadow-lg overflow-hidden">
                             <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-200">
@@ -133,13 +149,20 @@ const Header: React.FC = () => {
                                     <span className="text-gray-600 break-all text-xs">{user?.correo}</span>
                                 </div>
                             </div>
-                            <button onClick={signout} className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition">
+
+                            {/* BOTÓN DE LOGOUT CON NOTIFICACIÓN */}
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
+                            >
                                 <XCircle size={16} className="text-red-600" />
                                 <span className="text-sm text-red-600">Cerrar sesión</span>
                             </button>
+
                         </div>
                     )}
                 </div>
+
             </div>
         </header>
     );

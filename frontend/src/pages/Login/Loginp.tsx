@@ -5,6 +5,8 @@ import { User, Lock } from 'lucide-react';
 import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 
+import { useNotification } from '../../components/notifications/NotificationContext';
+
 import img1 from '../../assets/login/dei.jpg';
 import img2 from '../../assets/login/edificio.jpg';
 import img3 from '../../assets/login/mural.jpg';
@@ -34,9 +36,10 @@ const slides = [
 
 const Login: React.FC = () => {
     const [values, setValues] = useState<FormValues>({ email: '', password: '' });
-    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+
     const { signin } = useAuth();
+    const { notifySuccess, notifyError } = useNotification();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -45,14 +48,19 @@ const Login: React.FC = () => {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        setError(null);
         setLoading(true);
 
         try {
-            await signin({ email: values.email.trim(), password: values.password });
-            // signin() ya hace navigate al dashboard
+            await signin({
+                email: values.email.trim(),
+                password: values.password
+            });
+
+            notifySuccess("Inicio de sesión exitoso 🎉");
+
+
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Credenciales inválidas');
+            notifyError(err.response?.data?.message || "Credenciales incorrectas ❌");
         } finally {
             setLoading(false);
         }
@@ -104,14 +112,8 @@ const Login: React.FC = () => {
                         </p>
                     </div>
 
-                    {error && (
-                        <div className="bg-red-100 text-red-600 p-2 rounded text-sm text-center">
-                            {error}
-                        </div>
-                    )}
-
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Email completo */}
+                        {/* Email */}
                         <div className="relative flex items-center">
                             <User className="absolute left-3 text-gray-400" size={20} />
                             <input
@@ -142,7 +144,7 @@ const Login: React.FC = () => {
                             />
                         </div>
 
-                        {/* Submit */}
+                        {/* Botón */}
                         <button
                             type="submit"
                             disabled={loading}

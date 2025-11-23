@@ -41,15 +41,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        System.out.println(path);
-        return path.equals("/api/auth/login") || path.equals("/api/forgot-password") 
-                || path.equals("/api/validate-reset-token") || path.equals("/api/reset-password")
-                || path.equals("/api/save") || path.equals("/api/registros/test/horas");
+        System.out.println("[JWT FILTER] Revisando path: " + path);
+
+        // 🟦 ENDPOINTS PERMITIDOS (NO NECESITAN TOKEN)
+        return path.equals("/api/auth/login")
+                || path.equals("/api/forgot-password")
+                || path.equals("/api/validate-reset-token")
+                || path.equals("/api/reset-password")
+                || path.equals("/api/save")
+                || path.equals("/api/registros/test/horas")
+                || path.startsWith("/notifications");   // 🟦 NUEVO: permitir notificaciones
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+
+        // 🟦 EXTRA SEGURIDAD: si es un endpoint permitido, dejar pasar sin validar
+        if (path.startsWith("/notifications")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -91,8 +105,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRol().getNombre()));
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    user, null, authorities);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(user, null, authorities);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);

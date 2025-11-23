@@ -1,27 +1,20 @@
 import axios from 'axios';
 import endpoints from '../utils/endpoints';
+import { notificationService } from './notificationService';
 
-// Función para verificar si el token es válido
 const isTokenValid = (): boolean => {
     const token = localStorage.getItem('token');
     if (!token) {
         console.warn('⚠️ No token found');
         return false;
     }
-    
+
     try {
         const payloadBase64 = token.split('.')[1];
         const decodedPayload = JSON.parse(atob(payloadBase64));
-        const expirationTime = decodedPayload.exp * 1000; // Convert to milliseconds
+        const expirationTime = decodedPayload.exp * 1000;
         const currentTime = Date.now();
-        
-        console.log('🔍 Token validation:', {
-            expirationTime: new Date(expirationTime).toISOString(),
-            currentTime: new Date(currentTime).toISOString(),
-            isValid: currentTime < expirationTime,
-            timeLeft: Math.floor((expirationTime - currentTime) / 1000 / 60) + ' minutes'
-        });
-        
+
         return currentTime < expirationTime;
     } catch (error) {
         console.error('❌ Error parsing token:', error);
@@ -35,26 +28,15 @@ const api = axios.create({
     timeout: 10000,
 });
 
-api.interceptors.request.use(config => {
+api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     const tokenValid = isTokenValid();
-    
-    console.log('🔍 API Request Debug:', {
-        url: config.url,
-        method: config.method,
-        hasToken: !!token,
-        tokenValid: tokenValid,
-        tokenLength: token?.length || 0,
-        tokenStart: token?.substring(0, 20) + '...' || 'none'
-    });
-    
-    if (token && tokenValid && config.headers) {
+
+    if (token && tokenValid) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('✅ Token added to request headers');
     } else {
-        console.warn('⚠️ No valid token found in localStorage');
         if (token && !tokenValid) {
-            console.warn('⚠️ Token is expired, clearing localStorage...');
+            notificationService.notifyError("Tu sesión expiró. Por favor inicia sesión nuevamente.");
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/login';
@@ -63,38 +45,41 @@ api.interceptors.request.use(config => {
     return config;
 });
 
-// Interceptor de respuesta para manejar errores de autenticación
+
 api.interceptors.response.use(
     (response) => {
-        console.log('✅ API Response Success:', response.config.url);
         return response;
     },
     (error) => {
-        console.error('❌ API Response Error:', {
-            url: error.config?.url,
-            method: error.config?.method,
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data
-        });
-        
-        if (error.response?.status === 401 || error.response?.status === 403) {
-            // Token expirado o inválido
-            console.warn('🔐 Error de autenticación detectado:', error.response?.status);
-            
-            // Solo limpiar datos de sesión y redirigir si no estamos en una operación de edición
-            // y no estamos ya en la página de login
-            const currentPath = window.location.pathname;
-            const isEditingOperation = currentPath.includes('/dashboard') && 
-                                     (error.config?.method === 'put' || error.config?.method === 'post');
-            
-            if (!isEditingOperation && currentPath !== '/login') {
-                console.log('🔄 Limpiando sesión y redirigiendo a login...');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
-            }
+        if (!error.response) {
+            notificationService.notifyError("No hay conexión con el servidor ❌");
+            return Promise.reject(error);
         }
+
+        const status = error.response.status;
+
+        if (status === 401) {
+            notificationService.notifyError("Tu sesión ha expirado 🔐");
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 800);
+        }
+
+        if (status === 403) {
+            notificationService.notifyError("No tienes permisos para realizar esta acción 🚫");
+        }
+
+        if (status === 404) {
+            notificationService.notifyError("Recurso no encontrado 🔍");
+        }
+
+        if (status >= 500) {
+            notificationService.notifyError("Error interno del servidor 💥");
+        }
+
         return Promise.reject(error);
     }
 );

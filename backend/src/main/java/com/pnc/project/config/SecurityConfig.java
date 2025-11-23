@@ -32,8 +32,15 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                /* Dejar todo en manos de los dynamic filters */
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/**").permitAll().anyRequest().authenticated())
+
+                // 🔹 PERMITIR ENDPOINTS SIN TOKEN
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/notifications/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+
+                // 🔹 Filtros JWT (seguirán funcionando)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(dynamicAuthorizationFilter, JwtAuthenticationFilter.class);
 

@@ -23,11 +23,18 @@ public class DynamicAuthorizationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
+            String path = request.getRequestURI();
+
+            // 🟦 EXCEPCIÓN: estas rutas NO requieren autorización
+            if (path.startsWith("/notifications")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
             if (authentication != null && authentication.isAuthenticated()) {
                 String method = request.getMethod();
-                String path = request.getRequestURI();
 
                 boolean allowed = authentication.getAuthorities().stream()
                         .anyMatch(a -> a.getAuthority().equals(method + ":" + path)
@@ -48,6 +55,7 @@ public class DynamicAuthorizationFilter extends OncePerRequestFilter {
             }
 
             filterChain.doFilter(request, response);
+
         } catch (Exception ex) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setContentType("application/json");

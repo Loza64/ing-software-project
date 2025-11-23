@@ -1,3 +1,4 @@
+import { useNotification } from "../../components/notifications/NotificationContext";
 import React, { useState, useEffect, useCallback, FormEvent } from 'react';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { Dialog } from '@headlessui/react';
@@ -7,6 +8,7 @@ import { listarMateriasPorUsuario } from '../../services/usuarioMateriaService';
 import { listarMaterias } from '../../services/materiaService';
 import { listarActividades } from '../../services/actividadService';
 import { listarFormulariosPorUsuario, crearFormulario } from '../../services/formularioService';
+
 import {
     listarRegistrosPorUsuarioYFechas,
     crearRegistroHora,
@@ -16,6 +18,8 @@ import {
 import type { Materia, RegistroHora, RegistroDTO, MateriaUsuario, Actividad, Formulario } from '../../types';
 
 const DashboardEstudiante: React.FC = () => {
+  const { notifySuccess, notifyError } = useNotification();
+
     const { user } = useAuth();
     const userId = user?.idUsuario ?? '';
     const userCode = user?.codigoUsuario ?? '';
@@ -194,17 +198,17 @@ const DashboardEstudiante: React.FC = () => {
         
         // Validaciones
         if (!form.idFormulario || form.idFormulario === 0) {
-            alert('Por favor selecciona una materia');
+            notifyError('Por favor selecciona una materia');
             return;
         }
         
         if (!form.idActividad || form.idActividad === 0) {
-            alert('Por favor selecciona una actividad');
+            notifyError('Por favor selecciona una actividad');
             return;
         }
         
         if (!form.fechaRegistro || !form.horaInicio || !form.horaFin || !form.aula) {
-            alert('Por favor completa todos los campos');
+            notifyError('Por favor completa todos los campos');
             return;
         }
         
@@ -237,7 +241,7 @@ const DashboardEstudiante: React.FC = () => {
                     setFormularios(prev => [...prev, formularioRes.data]);
                 } catch (formularioError) {
                     console.error('Error creating formulario:', formularioError);
-                    alert('No se pudo crear un formulario. Contacta al administrador.');
+                    notifyError('No se pudo crear un formulario. Contacta al administrador.');
                     return;
                 }
             }
@@ -283,11 +287,11 @@ const DashboardEstudiante: React.FC = () => {
             loadRegistrosYFormularios();
             
             // Mostrar mensaje de éxito
-            alert(editing ? '✅ Registro actualizado exitosamente' : '✅ Registro creado exitosamente. Está pendiente de validación por el encargado.');
+            notifyError(editing ? '✅ Registro actualizado exitosamente' : '✅ Registro creado exitosamente. Está pendiente de validación por el encargado.');
             
         } catch (error) {
             console.error('Error al guardar registro:', error);
-            alert('Error al guardar el registro. Por favor, inténtalo de nuevo.');
+            notifyError('Error al guardar el registro. Por favor, inténtalo de nuevo.');
         }
     };
 
@@ -303,18 +307,18 @@ const DashboardEstudiante: React.FC = () => {
                     return nuevos;
                 });
                 loadRegistrosYFormularios();
-                alert('✅ Registro eliminado exitosamente');
+                notifyError('✅ Registro eliminado exitosamente');
             })
             .catch(error => {
                 console.error('Error eliminando registro:', error);
-                alert('Error al eliminar el registro. Por favor, inténtalo de nuevo.');
+                notifyError('Error al eliminar el registro. Por favor, inténtalo de nuevo.');
             });
     };
 
     // Editar
     const handleEdit = (reg: RegistroHora) => {
         if (reg.estado !== 'PENDIENTE') {
-            alert('Solo se pueden editar registros pendientes');
+            notifyError('Solo se pueden editar registros pendientes');
             return;
         }
         setEditing(reg);

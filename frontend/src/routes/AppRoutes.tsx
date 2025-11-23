@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import Login from '../pages/Login/Login';
+import Login from '../pages/Login/Loginp';
 import useAuth from '../hooks/useAuth';
 import Layout from '../layout/Layout';
 import DashboardEstudiante from '../pages/Dashboard/DashboardEstudiante';
@@ -9,6 +9,7 @@ import DashboardEncargado from '../pages/Dashboard/DashboardEncargado';
 import RegistrosPage from '../pages/Registros/RegistrosPage';
 import RegistroPageEncargado from '../pages/Registros/RegistroPageEncargado';
 import ValidacionesPage from '../pages/Validaciones/Validaciones';
+
 
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
     const { user, loading } = useAuth();
@@ -46,6 +47,7 @@ const AppRoutes: React.FC = () => (
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
+
     </Routes>
 );
 
