@@ -1,23 +1,18 @@
 package com.pnc.project.filters;
 
 import java.io.IOException;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pnc.project.config.JwtConfig;
 import com.pnc.project.dto.response.ExceptionResponse;
 import com.pnc.project.entities.Usuario;
 import com.pnc.project.service.UsuarioService;
+import com.pnc.project.config.JwtConfig;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -28,12 +23,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class AuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtConfig jwtUtil;
     private final UsuarioService userService;
 
-    public JwtAuthenticationFilter(@Lazy JwtConfig jwtUtil, UsuarioService userService) {
+    public AuthenticationFilter(JwtConfig jwtUtil, UsuarioService userService) {
         this.jwtUtil = jwtUtil;
         this.userService = userService;
     }
@@ -41,29 +36,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        System.out.println("[JWT FILTER] Revisando path: " + path);
+        System.out.println("[AUTH FILTER] Revisando path: " + path);
 
-        // 🟦 ENDPOINTS PERMITIDOS (NO NECESITAN TOKEN)
         return path.equals("/api/auth/login")
                 || path.equals("/api/forgot-password")
                 || path.equals("/api/validate-reset-token")
                 || path.equals("/api/reset-password")
                 || path.equals("/api/save")
                 || path.equals("/api/registros/test/horas")
-                || path.startsWith("/notifications");   // 🟦 NUEVO: permitir notificaciones
+                || path.startsWith("/notifications"); 
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-
-        String path = request.getRequestURI();
-
-        // 🟦 EXTRA SEGURIDAD: si es un endpoint permitido, dejar pasar sin validar
-        if (path.startsWith("/notifications")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -99,14 +85,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            Set<GrantedAuthority> authorities = user.getRol().getPermissions().stream()
-                    .map(permission -> new SimpleGrantedAuthority(permission.getMethod() + ":" + permission.getPath()))
-                    .collect(Collectors.toSet());
-
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRol().getNombre()));
-
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(user, null, authorities);
+                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);

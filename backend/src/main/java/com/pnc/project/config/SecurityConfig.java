@@ -2,47 +2,52 @@ package com.pnc.project.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.pnc.project.filters.DynamicAuthorizationFilter;
-import com.pnc.project.filters.JwtAuthenticationFilter;
+import com.pnc.project.filters.AuthorizationFilter;
+import com.pnc.project.filters.AuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final DynamicAuthorizationFilter dynamicAuthorizationFilter;
+    private final AuthenticationFilter authenticationFilter;
+    private final AuthorizationFilter authorizationFilter;
 
     public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter,
-            DynamicAuthorizationFilter dynamicAuthorizationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.dynamicAuthorizationFilter = dynamicAuthorizationFilter;
+            AuthenticationFilter authenticationFilter,
+            AuthorizationFilter authorizationFilter) {
+        this.authenticationFilter = authenticationFilter;
+        this.authorizationFilter = authorizationFilter;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-                // 🔹 PERMITIR ENDPOINTS SIN TOKEN
+        http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/api/forgot-password",
+                                "/api/validate-reset-token",
+                                "/api/reset-password"
+                        ).permitAll()
+
                         .requestMatchers("/notifications/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
 
-                // 🔹 Filtros JWT (seguirán funcionando)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(dynamicAuthorizationFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(authorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,4 +1,4 @@
-package com.pnc.project.config;
+package com.pnc.project.components;
 
 import com.pnc.project.entities.Actividad;
 import com.pnc.project.entities.Rol;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class DataInitializer implements CommandLineRunner {
+public class SaveRoles implements CommandLineRunner {
 
     private final RolRepository rolRepo;
     private final ActividadRepository actRepo;
@@ -19,13 +19,13 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
-        /* ---------- 1)  Roles ---------- */
+        /* ---------- 1) Roles ---------- */
         for (RolNombre rn : RolNombre.values()) {
             rolRepo.findByNombre(rn)
                     .orElseGet(() -> rolRepo.save(Rol.builder().nombre(rn).build()));
         }
 
-        /* ---------- 2)  Actividades ---------- */
+        /* ---------- 2) Actividades ---------- */
         for (ActividadNombre an : ActividadNombre.values()) {
             actRepo.findByNombre(an).orElseGet(() -> {
                 // El tipo se deriva del rol permitido (SOCIAL ↔ REMUNERADA)
