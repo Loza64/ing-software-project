@@ -41,8 +41,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } catch (Exception ex) {
-            sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Error interno en el filtro de autorización");
+            sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());
         }
     }
 
