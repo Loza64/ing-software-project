@@ -41,19 +41,13 @@ public class AuthorizationFilter extends OncePerRequestFilter {
                 Usuario user = (Usuario) auth.getPrincipal();
                 Long roleId = user.getRol().getIdRol();
 
+                System.out.println(user);
+
                 boolean pathAllowedByDB = permissionService.hasPermission(roleId, requestPath, method);
+                System.out.println(pathAllowedByDB);
 
                 if (!pathAllowedByDB) {
                     deny(response, "Ruta no permitida para tu rol en BD: " + requestPath);
-                    return;
-                }
-
-                boolean userHasAuthority = auth.getAuthorities().stream()
-                        .anyMatch(a -> a.getAuthority().equals(method + ":" + requestPath)
-                                || a.getAuthority().equals("ROLE_ADMIN"));
-
-                if (!userHasAuthority) {
-                    deny(response, "No tienes el permiso requerido para esta ruta: " + requestPath);
                     return;
                 }
             }

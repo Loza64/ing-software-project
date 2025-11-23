@@ -59,6 +59,7 @@ public class PermissionService {
     @Transactional(readOnly = true)
     public boolean hasPermission(Long roleId, String realPath, String method) {
         List<Permission> permissions = rolePermissionRepository.findPermissionsByRoleAndMethod(roleId, method);
+        System.out.println(permissions);
         return permissions.stream()
                 .anyMatch(p -> pathMatcher.match(p.getPath(), realPath));
     }
