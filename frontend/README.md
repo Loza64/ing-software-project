@@ -1,55 +1,130 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/jLkNjm-N)
-# React + TypeScript + Vite
+# 🕐 REHOSAR - Registro de Horas Sociales y Remuneradas
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema web desarrollado para el Departamento de Informática (DEI) con el objetivo de digitalizar y automatizar el registro, validación y generación de hojas de horas sociales y remuneradas para estudiantes e instructores.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 📌 Descripción del Proyecto
 
-## Expanding the ESLint configuration
+Actualmente, los registros de horas sociales y remuneradas en el DEI se realizan de forma manual mediante hojas físicas, lo que dificulta la trazabilidad, validación y resguardo de la información. REHOSAR resuelve este problema permitiendo:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Registro digital de horas.
+- Asociación de actividades predefinidas.
+- Validación de formularios por encargados.
+- Firma digital ligera como constancia electrónica.
+- Generación de hojas PDF para impresión y firma física.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+El sistema está dividido en frontend y backend, siguiendo una arquitectura en N Capas y desplegado en la nube.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚙️ Funcionalidades Principales
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+- 📥 Registro de horas con datos como fecha, hora de inicio y fin, actividad y aula.
+- 📚 Actividades clasificadas como sociales o remuneradas.
+- 📅 Agrupación de registros por formularios semanales.
+- ✍️ Firma virtual automática al momento de guardar un registro.
+- ✅ Validación y firma digital ligera por parte del encargado.
+- 🖨️ Exportación de formulario en formato PDF para impresión.
+- 🔐 Control de acceso por roles (ENCARGADO, INSTRUTORES REMUNERADOS Y SOCIALES).
+- 📊 Listado de formularios por usuario, estado o período.
+
+---
+
+## 🧱 Arquitectura del Proyecto
+
+Proyecto desarrollado bajo arquitectura **N-Capas**, con separación de responsabilidades:
+
+- **Frontend:** React + TypeScript
+- **Backend:** Spring Boot + Java 17
+- **Base de Datos:** PostgreSQL
+- **ORM:** JPA/Hibernate
+
+---
+
+## 🗃️ Entidades Principales
+
+- **Usuario:** Instructor o encargado.
+- **Rol:** InstructorNormal, InstructorRemunerado, Encargado.
+- **Materia:** Materias asignadas al instructor.
+- **Usuario_Materia:** Tabla intermedia para relación muchos a muchos.
+- **Actividad:** Tipo de actividad realizada (social o remunerada).
+- **Registro_Hora:** Registro individual de horas realizadas.
+- **Formulario:** Grupo de registros por semana.
+- **Validación:** Firma digital ligera del encargado.
+
+---
+
+## 👤 Roles del Sistema
+
+- **Instructor / Estudiante:**
+  - Registro de horas.
+  - Generación de formularios.
+  - Descarga de PDF.
+
+- **Encargado:**
+  - Revisión de formularios.
+  - Validación o rechazo.
+  - Firma digital ligera.
+
+---
+
+## 🚀 Tecnologías Utilizadas
+
+| Tecnología     | Descripción                          |
+|----------------|--------------------------------------|
+| React          | Interfaz de usuario (frontend)       |
+| TypeScript     | Tipado estático para mayor seguridad |
+| Spring Boot    | Backend con API REST                 |
+| PostgreSQL     | Base de datos relacional             |
+| JPA/Hibernate  | ORM para acceso a datos              |
+| Vercel         | Despliegue del frontend              |
+| Docker/Koyeb | Despliegue del backend y base de datos |
+
+---
+
+## 🔐 Seguridad
+
+- Manejo de sesiones por roles.
+- Validaciones en frontend y backend.
+- Hash de contraseñas almacenadas en la base de datos.
+- Filtros y control de acceso a endpoints.
+
+---
+
+## 📦 Estructura de Repositorios
+
+- `backend/` → Código fuente del backend (Spring Boot).
+- `frontend/` → Código fuente del frontend (React).
+- Ambos repositorios separados como exige el proyecto.
+
+---
+
+## 📄 Documentación
+
+- Documentación completa del API REST mediante Confluence.
+- Diagrama Entidad-Relación de la base de datos.
+- Descripción funcional y técnica del sistema.
+
+---
+
+## 🧪 Pruebas
+
+- Validación manual de flujos principales (registro, validación, descarga).
+- Pruebas básicas con Postman para endpoints REST.
+
+---
+
+## 👨‍💻 Desarrollado por
+
+> Grupo - 08 para la materia **Programación N Capas**  
+> Universidad Centroaméricana José Simeón Cañas / Departamento de Electrónica e Informática – 2025
+
+---
+
+## 🧪 Links de deployments
+
+> [Frontend](https://ing-software-project.vercel.app/)
+> [Backend](https://spring-rehosar.fly.dev/)
+---
+
