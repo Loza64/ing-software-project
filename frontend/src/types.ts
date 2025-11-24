@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Roles admitidos
 export type Rol = 'ENCARGADO' | 'INSTRUCTOR_NORMAL' | 'INSTRUCTOR_REMUNERADO';
 
@@ -46,6 +47,8 @@ export interface MateriaDTO {
 
 // Materia que viene de la API
 export interface Materia {
+    id: string | undefined;
+    nombre: any;
     idMateria: string;
     nombreMateria: string;
 }
@@ -87,45 +90,53 @@ export interface Formulario {
 
 // DTO para registro de hora (corregido según Postman)
 export interface RegistroDTO {
-    fechaRegistro:  string;
-    horaInicio:     string;
-    horaFin:        string;
+    fechaRegistro: string;
+    horaInicio: string;
+    horaFin: string;
     horasEfectivas: number;
-    aula:           string;
-    codigoUsuario:  string;
-    idFormulario:   number; // El backend siempre espera un número
-    idActividad:    number;
+    aula: string;
+    codigoUsuario: string;
+    idFormulario: number; // El backend siempre espera un número
+    idActividad: number;
 }
 
 // Registro de hora que viene de la API
 export interface RegistroHora {
-    idRegistro:     string;
-    fechaRegistro:  string;
-    horaInicio:     string;
-    horaFin:        string;
-    actividad:      string;
-    aula:           string;
+    id_formulario(id_formulario: any): any;
+    fecha_registro(fecha_registro: any): unknown;
+    hora_inicio(hora_inicio: any): unknown;
+    hora_fin(hora_fin: any): unknown;
+    id_registro_hora(id_registro_hora: any): any;
+    id_actividad(id_actividad: any): any;
+    idActividad(idActividad: any): any;
+    horas_efectivas(horas_efectivas: any): any;
+    idRegistro: string;
+    fechaRegistro: string;
+    horaInicio: string;
+    horaFin: string;
+    actividad: string;
+    aula: string;
     horasEfectivas: number;
-    estado:         'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
-    nombreActividad:string;
-    idFormulario:   string;
-    codigoUsuario:  string;
+    estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
+    nombreActividad: string;
+    idFormulario: string;
+    codigoUsuario: string;
 }
 
 // DTO para validación de formulario
 export interface ValidacionDTO {
     idFormulario: string;
-    idEncargado:  string;
-    estado:       'APROBADO' | 'DENEGADO';
+    idEncargado: string;
+    estado: 'APROBADO' | 'DENEGADO';
     observacion?: string;
 }
 
 // Validación que viene de la API
 export interface Validacion {
-    idValidacion:   string;
-    idFormulario:   string;
-    idEncargado:    string;
-    fechaValidacion:string;
-    estado:         'APROBADO' | 'DENEGADO';
-    observacion?:   string;
+    idValidacion: string;
+    idFormulario: string;
+    idEncargado: string;
+    fechaValidacion: string;
+    estado: 'APROBADO' | 'DENEGADO';
+    observacion?: string;
 }

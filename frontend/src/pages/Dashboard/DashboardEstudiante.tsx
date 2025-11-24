@@ -1,25 +1,21 @@
-import { useNotification } from "../../components/notifications/NotificationContext";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback, FormEvent } from 'react';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
-import { Dialog } from '@headlessui/react';
 import useAuth from '../../hooks/useAuth';
 import { calcularHorasEfectivas } from '../../utils/timeUtils';
 import { listarMateriasPorUsuario } from '../../services/usuarioMateriaService';
 import { listarMaterias } from '../../services/materiaService';
 import { listarActividades } from '../../services/actividadService';
 import { listarFormulariosPorUsuario, crearFormulario } from '../../services/formularioService';
-
 import {
     listarRegistrosPorUsuarioYFechas,
     crearRegistroHora,
     actualizarRegistroHora,
     eliminarRegistro,
 } from '../../services/registroHoraService';
-import type { Materia, RegistroHora, RegistroDTO, MateriaUsuario, Actividad, Formulario } from '../../types';
+import type { Materia, RegistroHora, RegistroDTO, MateriaUsuario, Actividad, Formulario, FormularioDTO } from '../../types';
 
 const DashboardEstudiante: React.FC = () => {
-  const { notifySuccess, notifyError } = useNotification();
-
     const { user } = useAuth();
     const userId = user?.idUsuario ?? '';
     const userCode = user?.codigoUsuario ?? '';
@@ -54,21 +50,21 @@ const DashboardEstudiante: React.FC = () => {
     const loadMaterias = useCallback(async () => {
         setLoadingMaterias(true);
         setErrorMaterias(null);
-        
+
         try {
             // Obtener todas las materias
             const todasLasMateriasRes = await listarMaterias();
             const todasLasMaterias = todasLasMateriasRes.data;
-            
+
             // Obtener las materias asignadas al usuario
             const materiasUsuarioRes = await listarMateriasPorUsuario(String(userId));
             const materiasUsuario = materiasUsuarioRes.data;
-            
+
             // Filtrar las materias que están asignadas al usuario
-            const materiasAsignadas = todasLasMaterias.filter(materia => 
+            const materiasAsignadas = todasLasMaterias.filter(materia =>
                 materiasUsuario.some((m: MateriaUsuario) => m.nombreMateria === materia.nombreMateria)
             );
-            
+
             setMaterias(materiasAsignadas);
         } catch (error) {
             console.error('Error cargando materias:', error);
@@ -116,7 +112,7 @@ const DashboardEstudiante: React.FC = () => {
             const pad = (n: number) => n.toString().padStart(2, '0');
             const getValue = (val: any) => Array.isArray(val) ? val[0] : val;
             const registrosConEstado = registrosRes.data.map(registro => {
-                const formulario = formulariosRes.data.find(f => 
+                const formulario = formulariosRes.data.find(f =>
                     String(f.idFormulario) === String(getValue(registro.id_formulario) ?? getValue(registro.idFormulario))
                 );
                 // Formatear fecha y hora si vienen como número
@@ -129,6 +125,15 @@ const DashboardEstudiante: React.FC = () => {
                 let horaFin = getValue(registro.hora_fin) ?? getValue(registro.horaFin);
                 if (typeof horaFin === 'number') horaFin = `${pad(horaFin)}:00:00`;
 
+                // Normalizar el estado para que coincida con el tipo RegistroHora
+                const estadoRaw = formulario ? formulario.estado : undefined;
+                // Convertir a string en mayúsculas para evitar errores de tipos y normalizar variantes
+                const estadoStr = String(estadoRaw).toUpperCase();
+                const estadoNormalizado =
+                    (estadoStr === 'DENEGADO' || estadoStr === 'RECHAZADO') ? 'RECHAZADO'
+                        : estadoStr === 'APROBADO' ? 'APROBADO'
+                            : 'PENDIENTE';
+
                 return {
                     ...registro,
                     idRegistro: getValue(registro.id_registro_hora) ?? getValue(registro.idRegistro),
@@ -138,11 +143,11 @@ const DashboardEstudiante: React.FC = () => {
                     idFormulario: getValue(registro.id_formulario) ?? getValue(registro.idFormulario),
                     horasEfectivas: getValue(registro.horas_efectivas) ?? getValue(registro.horasEfectivas),
                     fechaRegistro,
-                    estado: formulario ? formulario.estado : undefined,
+                    estado: estadoNormalizado,
                     nombreActividad: registro.nombreActividad // si existe
                 };
             });
-            setRegistros(registrosConEstado);
+            setRegistros(registrosConEstado as RegistroHora[]);
             localStorage.setItem('registros', JSON.stringify(registrosConEstado));
             console.log('Registros cargados:', registrosConEstado);
             if (registrosConEstado && registrosConEstado.length > 0) {
@@ -170,54 +175,38 @@ const DashboardEstudiante: React.FC = () => {
     // Función helper para obtener el nombre de la actividad
     const getNombreActividad = (idActividad: string | number): string => {
         // Acepta idActividad como string o número
-        const id = typeof idActividad === 'string' ? parseInt(idActividad) : idActividad;
-        const actividad = actividades.find(a => a.idActividad === id);
+        const idStr = typeof idActividad === 'string' ? idActividad : String(idActividad);
+        const actividad = actividades.find(a => a.idActividad === idStr);
         return actividad ? actividad.nombreActividad : idActividad ? String(idActividad) : '—';
     };
 
-    // Función helper para obtener el nombre de la materia de un registro
-    const getNombreMateria = (idFormulario: string): string => {
-        // Si no hay idFormulario, el registro está pendiente de validación
-        if (!idFormulario || idFormulario === 'null' || idFormulario === 'undefined') {
-            return 'Pendiente de validación';
-        }
-        
-        // Buscar el formulario para obtener información
-        const formulario = formularios.find(f => f.idFormulario === idFormulario);
-        if (formulario) {
-            return `Formulario ${formulario.idFormulario} (${formulario.estado})`;
-        }
-        
-        // Si no se encuentra el formulario, mostrar información básica
-        return `Formulario ${idFormulario}`;
-    };
 
     // Crear o actualizar
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        
+
         // Validaciones
         if (!form.idFormulario || form.idFormulario === 0) {
-            notifyError('Por favor selecciona una materia');
+            alert('Por favor selecciona una materia');
             return;
         }
-        
+
         if (!form.idActividad || form.idActividad === 0) {
-            notifyError('Por favor selecciona una actividad');
+            alert('Por favor selecciona una actividad');
             return;
         }
-        
+
         if (!form.fechaRegistro || !form.horaInicio || !form.horaFin || !form.aula) {
-            notifyError('Por favor completa todos los campos');
+            alert('Por favor completa todos los campos');
             return;
         }
-        
+
         const horas = calcularHorasEfectivas(form.horaInicio, form.horaFin);
 
         try {
             // Buscar un formulario existente para el usuario
-            let formularioExistente = formularios.find(f => 
-                f.codigoUsuario === userCode && 
+            const formularioExistente = formularios.find(f =>
+                f.codigoUsuario === userCode &&
                 f.estado === 'PENDIENTE'
             );
 
@@ -227,7 +216,7 @@ const DashboardEstudiante: React.FC = () => {
                 idFormularioParaRegistro = parseInt(formularioExistente.idFormulario);
             } else {
                 // Crear un formulario temporal
-                const formularioDTO = {
+                const formularioDTO: FormularioDTO = {
                     fechaCreacion: new Date().toISOString().split('T')[0],
                     estado: 'PENDIENTE',
                     codigoUsuario: userCode
@@ -236,69 +225,69 @@ const DashboardEstudiante: React.FC = () => {
                 try {
                     const formularioRes = await crearFormulario(formularioDTO);
                     idFormularioParaRegistro = parseInt(formularioRes.data.idFormulario);
-                    
+
                     // Actualizar la lista de formularios
                     setFormularios(prev => [...prev, formularioRes.data]);
                 } catch (formularioError) {
                     console.error('Error creating formulario:', formularioError);
-                    notifyError('No se pudo crear un formulario. Contacta al administrador.');
+                    alert('No se pudo crear un formulario. Contacta al administrador.');
                     return;
                 }
             }
 
             // Crear el registro de hora con el formulario asignado
-        const dto: RegistroDTO = {
-            fechaRegistro: form.fechaRegistro,
-            horaInicio: form.horaInicio,
-            horaFin: form.horaFin,
-            horasEfectivas: horas,
-            aula: form.aula,
+            const dto: RegistroDTO = {
+                fechaRegistro: form.fechaRegistro,
+                horaInicio: form.horaInicio,
+                horaFin: form.horaFin,
+                horasEfectivas: horas,
+                aula: form.aula,
                 codigoUsuario: userCode,
-            idActividad: form.idActividad,
+                idActividad: form.idActividad,
                 idFormulario: idFormularioParaRegistro,
-        };
+            };
 
-        const action = editing
-            ? actualizarRegistroHora(editing.idRegistro, dto)
-            : crearRegistroHora(dto);
+            const action = editing
+                ? actualizarRegistroHora(editing.idRegistro, dto)
+                : crearRegistroHora(dto);
 
             const res = await action;
-                const saved = res.data as RegistroHora;
-            
+            const saved = res.data as RegistroHora;
+
             setRegistros(prev => {
                 const nuevos = editing
-                        ? prev.map(r => r.idRegistro === editing.idRegistro ? saved : r)
+                    ? prev.map(r => r.idRegistro === editing.idRegistro ? saved : r)
                     : [...prev, saved];
                 localStorage.setItem('registros', JSON.stringify(nuevos));
                 return nuevos;
             });
-                setModalOpen(false);
-                setEditing(null);
-                setForm({
-                    fechaRegistro: '',
-                    horaInicio: '',
-                    horaFin: '',
-                    aula: '',
+            setModalOpen(false);
+            setEditing(null);
+            setForm({
+                fechaRegistro: '',
+                horaInicio: '',
+                horaFin: '',
+                aula: '',
                 idActividad: 0,
                 idFormulario: 0,
             });
 
             // Recargar datos
             loadRegistrosYFormularios();
-            
+
             // Mostrar mensaje de éxito
-            notifyError(editing ? '✅ Registro actualizado exitosamente' : '✅ Registro creado exitosamente. Está pendiente de validación por el encargado.');
-            
+            alert(editing ? '✅ Registro actualizado exitosamente' : '✅ Registro creado exitosamente. Está pendiente de validación por el encargado.');
+
         } catch (error) {
             console.error('Error al guardar registro:', error);
-            notifyError('Error al guardar el registro. Por favor, inténtalo de nuevo.');
+            alert('Error al guardar el registro. Por favor, inténtalo de nuevo.');
         }
     };
 
     // Borrar
     const handleDelete = (id: string) => {
         if (!confirm('¿Estás seguro de eliminar este registro?')) return;
-        
+
         eliminarRegistro(id)
             .then(() => {
                 setRegistros(prev => {
@@ -307,18 +296,18 @@ const DashboardEstudiante: React.FC = () => {
                     return nuevos;
                 });
                 loadRegistrosYFormularios();
-                notifyError('✅ Registro eliminado exitosamente');
+                alert('✅ Registro eliminado exitosamente');
             })
             .catch(error => {
                 console.error('Error eliminando registro:', error);
-                notifyError('Error al eliminar el registro. Por favor, inténtalo de nuevo.');
+                alert('Error al eliminar el registro. Por favor, inténtalo de nuevo.');
             });
     };
 
     // Editar
     const handleEdit = (reg: RegistroHora) => {
         if (reg.estado !== 'PENDIENTE') {
-            notifyError('Solo se pueden editar registros pendientes');
+            alert('Solo se pueden editar registros pendientes');
             return;
         }
         setEditing(reg);
@@ -327,8 +316,8 @@ const DashboardEstudiante: React.FC = () => {
             horaInicio: reg.horaInicio,
             horaFin: reg.horaFin,
             aula: reg.aula,
-            idActividad: parseInt(reg.idActividad) || 0,
-            idFormulario: parseInt(reg.idFormulario) || 0,
+            idActividad: parseInt(String(reg.idActividad)) || 0,
+            idFormulario: parseInt(String(reg.idFormulario)) || 0,
         });
         setModalOpen(true);
     };
@@ -395,7 +384,7 @@ const DashboardEstudiante: React.FC = () => {
                 <div className="px-6 py-4 border-b border-gray-200">
                     <h2 className="text-lg font-semibold text-gray-900">Registros de Horas</h2>
                 </div>
-                
+
                 {loadingRegistros ? (
                     <div className="p-8 text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -404,13 +393,13 @@ const DashboardEstudiante: React.FC = () => {
                 ) : registros.length === 0 ? (
                     <div className="p-8 text-center">
                         <p className="text-gray-500">No hay registros de horas disponibles</p>
-                    <button
-                        onClick={() => setModalOpen(true)}
+                        <button
+                            onClick={() => setModalOpen(true)}
                             className="mt-2 text-blue-600 hover:text-blue-700 font-medium"
-                    >
+                        >
                             Crear tu primer registro
-                    </button>
-                </div>
+                        </button>
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
@@ -437,8 +426,8 @@ const DashboardEstudiante: React.FC = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Acciones
                                     </th>
-                        </tr>
-                    </thead>
+                                </tr>
+                            </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {registros.map((registro) => (
                                     <tr key={registro.idRegistro} className="hover:bg-gray-50">
@@ -449,7 +438,7 @@ const DashboardEstudiante: React.FC = () => {
                                             {formatTime(registro.horaInicio)} - {formatTime(registro.horaFin)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {registro.nombreActividad || getNombreActividad(registro.idActividad)}
+                                            {registro.nombreActividad || getNombreActividad(String(registro.idActividad))}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {registro.aula}
@@ -470,22 +459,22 @@ const DashboardEstudiante: React.FC = () => {
                                                         className="text-blue-600 hover:text-blue-900"
                                                         title="Editar"
                                                     >
-                                        <Edit2 size={16} />
-                                    </button>
+                                                        <Edit2 size={16} />
+                                                    </button>
                                                 )}
                                                 <button
                                                     onClick={() => handleDelete(registro.idRegistro)}
                                                     className="text-red-600 hover:text-red-900"
                                                     title="Eliminar"
                                                 >
-                                        <Trash2 size={16} />
-                                    </button>
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
-                                </td>
-                            </tr>
+                                        </td>
+                                    </tr>
                                 ))}
-                    </tbody>
-                </table>
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>
@@ -555,13 +544,13 @@ const DashboardEstudiante: React.FC = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Fecha *
                                     </label>
-                        <input
-                            type="date"
-                            value={form.fechaRegistro}
+                                    <input
+                                        type="date"
+                                        value={form.fechaRegistro}
                                         onChange={(e) => setForm(prev => ({ ...prev, fechaRegistro: e.target.value }))}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
+                                        required
+                                    />
                                 </div>
 
                                 {/* Horario */}
@@ -570,26 +559,26 @@ const DashboardEstudiante: React.FC = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Hora Inicio *
                                         </label>
-                            <input
-                                type="time"
-                                value={form.horaInicio}
+                                        <input
+                                            type="time"
+                                            value={form.horaInicio}
                                             onChange={(e) => setForm(prev => ({ ...prev, horaInicio: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
+                                            required
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Hora Fin *
                                         </label>
-                            <input
-                                type="time"
-                                value={form.horaFin}
+                                        <input
+                                            type="time"
+                                            value={form.horaFin}
                                             onChange={(e) => setForm(prev => ({ ...prev, horaFin: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            />
-                        </div>
+                                            required
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Aula */}
@@ -597,20 +586,20 @@ const DashboardEstudiante: React.FC = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Aula *
                                     </label>
-                        <input
-                            type="text"
-                            value={form.aula}
+                                    <input
+                                        type="text"
+                                        value={form.aula}
                                         onChange={(e) => setForm(prev => ({ ...prev, aula: e.target.value }))}
                                         placeholder="Ej: L-3, Aula 101"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
+                                        required
+                                    />
                                 </div>
 
                                 {/* Botones */}
                                 <div className="flex justify-end space-x-3 pt-4">
-                            <button
-                                type="button"
+                                    <button
+                                        type="button"
                                         onClick={() => {
                                             setModalOpen(false);
                                             setEditing(null);
@@ -624,17 +613,17 @@ const DashboardEstudiante: React.FC = () => {
                                             });
                                         }}
                                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
                                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-                            >
+                                    >
                                         {editing ? 'Actualizar' : 'Crear'}
-                            </button>
-                        </div>
-                    </form>
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

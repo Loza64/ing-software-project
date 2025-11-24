@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react';
 import useAuth from '../../hooks/useAuth';
 import type { Usuario, Materia } from '../../types';
@@ -46,22 +47,22 @@ const RegistroPageEncargado: React.FC = () => {
 
     // Helpers para datos
     const getCodigoEstudiante = (r: RegistroLocal) => {
-        const u = usuarios.find(u => u.id === r.estudianteId);
+        const u = usuarios.find(u => u.idUsuario === r.estudianteId);
         return u ? u.codigoUsuario : r.estudianteId;
     };
     const getNombreEstudiante = (r: RegistroLocal) => {
-        const u = usuarios.find(u => u.id === r.estudianteId);
+        const u = usuarios.find(u => u.idUsuario === r.estudianteId);
         return u ? `${u.nombre} ${u.apellido}` : r.estudianteId;
     };
     const getMateriaEstudiante = (r: RegistroLocal) => {
-        const u = usuarios.find(u => u.id === r.estudianteId);
+        const u = usuarios.find(u => u.idUsuario === r.estudianteId);
         if (!u || !u.materiaId) return '—';
         const m = materias.find(m => m.id === u.materiaId);
         return m ? m.nombre : '—';
     };
     const getTipoInstructor = (r: RegistroLocal) => {
-        const u = usuarios.find(u => u.id === r.estudianteId);
-        return u?.rol === 'INSTRUCTOR_SOCIAL' ? 'SOCIAL' : 'REMUNERADA';
+        const u = usuarios.find(u => u.idUsuario === r.estudianteId);
+        return String(u?.rol) === 'INSTRUCTOR_SOCIAL' ? 'SOCIAL' : 'REMUNERADA';
     };
 
     // Filtrado
@@ -102,7 +103,7 @@ const RegistroPageEncargado: React.FC = () => {
                 {/* Tipo instructor */}
                 <div className="flex items-center flex-1 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-[rgb(0,60,113)] transition">
                     <Filter className="text-gray-400 mr-2" />
-                    
+
                     <select
                         value={filtros.tipoInstructor}
                         onChange={e => { setFiltros(f => ({ ...f, tipoInstructor: e.target.value as any })); setPage(1); }}
@@ -173,7 +174,7 @@ const RegistroPageEncargado: React.FC = () => {
                                 <td className="px-4 py-2">
                                     <span className={
                                         r.estado === 'APROBADO' ? 'text-green-600' :
-                                        r.estado === 'RECHAZADO' ? 'text-red-600' : 'text-yellow-600'
+                                            r.estado === 'RECHAZADO' ? 'text-red-600' : 'text-yellow-600'
                                     }>{r.estado}</span>
                                 </td>
                             </tr>

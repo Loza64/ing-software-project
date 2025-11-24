@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from 'react';
 import useAuth from '../../hooks/useAuth';
 import jsPDF from 'jspdf';
@@ -21,15 +22,15 @@ interface CatMateria { id: string; nombre: string; }
 
 const RegistrosPage: React.FC = () => {
   const { user } = useAuth();
-  const userId = (user as any)?.codigoUsuario ?? user?.id ?? '';
+  const userId = (user as any)?.codigoUsuario ?? user?.idUsuario ?? '';
   const canFilter = /(?:INSTRUCTOR_NORMAL|INSTRUCTOR_REMUNERADO)/i.test(user?.rol ?? '');
 
   /* materias y materia seleccionada */
-  const [materias, setMaterias]     = useState<CatMateria[]>([]);
+  const [materias, setMaterias] = useState<CatMateria[]>([]);
   const [materiaSel, setMateriaSel] = useState<string>('');
 
   /* registros aprobados filtrados */
-  const [registros, setRegistros]   = useState<RegistroHora[]>([]);
+  const [registros, setRegistros] = useState<RegistroHora[]>([]);
 
   const printableRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +51,7 @@ const RegistrosPage: React.FC = () => {
     const rawP = localStorage.getItem('usuarioXmateria');
     const rawM = localStorage.getItem('materias');
     if (!rawP || !rawM) return;
-    const puente  = JSON.parse(rawP) as PuenteLS[];
+    const puente = JSON.parse(rawP) as PuenteLS[];
     const catalog = JSON.parse(rawM) as CatMateria[];
     const ids = puente.filter(p => p.id_usuario === userId).map(p => p.id_materia);
     setMaterias(catalog.filter(m => ids.includes(m.id)));
@@ -115,12 +116,12 @@ const RegistrosPage: React.FC = () => {
           <h2 className="text-xl font-semibold text-[#003c71]">Información para Control de Asistencia</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              ['Carrera',       info.carrera,      true],
-              ['Carnet',        info.carnet,       true],
-              ['Teléfono',      info.telefono,     false],
-              ['Proyecto',      info.proyecto,     false],
-              ['Responsable',   info.institucion,  false],
-              ['Fecha inicio',  info.inicio,       false, 'date'],
+              ['Carrera', info.carrera, true],
+              ['Carnet', info.carnet, true],
+              ['Teléfono', info.telefono, false],
+              ['Proyecto', info.proyecto, false],
+              ['Responsable', info.institucion, false],
+              ['Fecha inicio', info.inicio, false, 'date'],
             ].map(([label, val, ro, type], i) => (
               <div key={i} className="flex flex-col">
                 <label className="text-sm font-medium">{label}</label>
@@ -130,12 +131,11 @@ const RegistrosPage: React.FC = () => {
                   readOnly={ro as boolean}
                   onChange={e => {
                     const v = e.target.value;
-                    const key = ((['carrera','carnet','telefono','proyecto','institucion','inicio'][i]) as keyof typeof info);
+                    const key = ((['carrera', 'carnet', 'telefono', 'proyecto', 'institucion', 'inicio'][i]) as keyof typeof info);
                     setInfo(info => ({ ...info, [key]: v }));
                   }}
-                  className={`w-full border rounded px-3 py-2 ${
-                    ro ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
+                  className={`w-full border rounded px-3 py-2 ${ro ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
                 />
               </div>
             ))}
