@@ -5,6 +5,7 @@ import com.pnc.project.dto.response.actividad.ActividadResponse;
 import com.pnc.project.entities.Actividad;
 import com.pnc.project.repository.ActividadRepository;
 import com.pnc.project.service.ActividadService;
+import com.pnc.project.exception.DuplicateFieldException;
 import com.pnc.project.utils.enums.RolNombre;
 import com.pnc.project.utils.enums.TipoActividad;
 import com.pnc.project.utils.mappers.ActividadMapper;
@@ -35,6 +36,9 @@ public class ActividadServiceImpl implements ActividadService {
     @Override
     public ActividadResponse save(ActividadRequest req) {
         TipoActividad tipo = deducirTipo(req);
+        if (repo.existsByNombre(req.getNombreActividad())) {
+            throw new DuplicateFieldException("actividad.nombre", "Ya existe una actividad con ese nombre");
+        }
         Actividad act = repo.save(ActividadMapper.toEntityCreate(req, tipo));
         return ActividadMapper.toDTO(act);
     }

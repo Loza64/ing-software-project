@@ -76,6 +76,20 @@ api.interceptors.response.use(
             notificationService.notifyError("Recurso no encontrado 🔍");
         }
 
+        if (status === 400) {
+            try {
+                const data = error.response.data;
+                const msg = data && (data.message || (typeof data === 'string' ? data : null))
+                    ? (data.message || data)
+                    : 'Solicitud inválida (400)';
+                notificationService.notifyError(String(msg));
+            } catch (e) {
+                notificationService.notifyError('Solicitud inválida (400)');
+            }
+        }
+
+        // 409 conflicts are handled by the specific components (inline), avoid global toast here
+
         if (status >= 500) {
             notificationService.notifyError("Error interno del servidor 💥");
         }

@@ -11,6 +11,7 @@ import com.pnc.project.config.JwtConfig;
 import com.pnc.project.service.EmailService;
 import com.pnc.project.service.RolService;
 import com.pnc.project.service.UsuarioService;
+import com.pnc.project.exception.DuplicateFieldException;
 import com.pnc.project.utils.mappers.RolMapper;
 import com.pnc.project.utils.mappers.UsuarioMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -83,6 +84,13 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public UsuarioResponse save(UsuarioRequest usuario) {
+        // Validar duplicados antes de crear
+        if (usuarioRepository.existsByCodigoUsuario(usuario.getCodigoUsuario())) {
+            throw new DuplicateFieldException("usuario.codigoUsuario", "Ya existe un usuario con ese código");
+        }
+        if (usuarioRepository.existsByEmail(usuario.getCorreo())) {
+            throw new DuplicateFieldException("usuario.email", "Ya existe un usuario con ese correo electrónico");
+        }
         RolResponse rol = rolService.findByName(usuario.getRol());
         return UsuarioMapper
                 .toDTO(usuarioRepository.save(UsuarioMapper.toEntityCreate(usuario, RolMapper.toEntity(rol))));
@@ -95,6 +103,18 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuario not found"));
 
         RolResponse rol = rolService.findByName(usuario.getRol());
+
+        // Validar que el nuevo código o email no pertenezca a otro usuario
+        if (usuario.getCodigoUsuario() != null && !usuario.getCodigoUsuario().equals(usuarioExistente.getCodigoUsuario())) {
+            if (usuarioRepository.existsByCodigoUsuario(usuario.getCodigoUsuario())) {
+                throw new DuplicateFieldException("usuario.codigoUsuario", "Ya existe otro usuario con ese código");
+            }
+        }
+        if (usuario.getCorreo() != null && !usuario.getCorreo().equals(usuarioExistente.getEmail())) {
+            if (usuarioRepository.existsByEmail(usuario.getCorreo())) {
+                throw new DuplicateFieldException("usuario.email", "Ya existe otro usuario con ese correo electrónico");
+            }
+        }
 
         // Actualizar solo los campos proporcionados
         usuarioExistente.setCodigoUsuario(usuario.getCodigoUsuario());

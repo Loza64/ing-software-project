@@ -6,6 +6,8 @@ import io.jsonwebtoken.io.SerializationException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataAccessException;
+import com.pnc.project.exception.DuplicateFieldException;
+import com.pnc.project.dto.response.DuplicateFieldResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -105,6 +107,13 @@ public class AdviceController {
     public ResponseEntity<Message> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new Message(false, "Data integrity violation: " + ex.getRootCause().getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateFieldException.class)
+    @ResponseBody
+    public ResponseEntity<DuplicateFieldResponse> handleDuplicateField(DuplicateFieldException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new DuplicateFieldResponse(ex.getField(), ex.getMessage()));
     }
 
     // 500 - Internal Server Error

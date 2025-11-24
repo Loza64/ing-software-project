@@ -61,11 +61,17 @@ public class AuthorizationFilter extends OncePerRequestFilter {
     }
 
     private void sendError(HttpServletResponse response, int status, String message) throws IOException {
+        if (response.isCommitted()) {
+            return;
+        }
+        response.resetBuffer();
         response.setStatus(status);
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
 
         ExceptionResponse error = new ExceptionResponse(status, message);
-        response.getWriter().write(objectMapper.writeValueAsString(error));
+        String payload = objectMapper.writeValueAsString(error);
+        response.getWriter().write(payload);
+        response.flushBuffer();
     }
 
 }

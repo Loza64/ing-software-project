@@ -1,6 +1,7 @@
 package com.pnc.project.entities;
 
 import jakarta.persistence.*;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-@Table(name = "registro_hora")
+@Table(name = "registro_hora", uniqueConstraints = @UniqueConstraint(name = "uk_registro_unique", columnNames = {"id_usuario","id_actividad","fecha_registro","hora_inicio"}))
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

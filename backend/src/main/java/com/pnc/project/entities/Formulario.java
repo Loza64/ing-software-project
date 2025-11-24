@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
-@Table(name = "formulario")
+@Table(name = "formulario", uniqueConstraints = @UniqueConstraint(name = "uk_formulario_unique", columnNames = {"id_usuario","id_materia","fecha_creacion"}))
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

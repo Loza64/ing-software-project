@@ -13,4 +13,5 @@ import java.util.Optional;
 public interface ActividadRepository extends JpaRepository<Actividad, Integer> {
     Optional<Actividad> findByNombre(ActividadNombre nombre);
     List<Actividad> findByTipoActividad(TipoActividad tipoActividad);
+    boolean existsByNombre(ActividadNombre nombre);
 }

@@ -112,10 +112,15 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+        if (response.isCommitted()) {
+            return;
+        }
+        response.resetBuffer();
         response.setStatus(status);
-        response.setContentType("application/json");
+        response.setContentType("application/json;charset=UTF-8");
         ExceptionResponse error = new ExceptionResponse(status, message);
         String json = new ObjectMapper().writeValueAsString(error);
         response.getWriter().write(json);
+        response.flushBuffer();
     }
 }

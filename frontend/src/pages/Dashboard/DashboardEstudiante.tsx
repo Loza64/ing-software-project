@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback, FormEvent } from 'react';
+import { notificationService } from '../../services/notificationService';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { calcularHorasEfectivas } from '../../utils/timeUtils';
@@ -45,6 +46,9 @@ const DashboardEstudiante: React.FC = () => {
         idActividad: 0,
         idFormulario: 0,
     });
+
+    // Fecha máxima permitida en el input (hoy)
+    const todayStr = new Date().toISOString().split('T')[0];
 
     // Load materias
     const loadMaterias = useCallback(async () => {
@@ -185,6 +189,8 @@ const DashboardEstudiante: React.FC = () => {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
+        // clear any previous notifications
+
         // Validaciones
         if (!form.idFormulario || form.idFormulario === 0) {
             alert('Por favor selecciona una materia');
@@ -202,6 +208,22 @@ const DashboardEstudiante: React.FC = () => {
         }
 
         const horas = calcularHorasEfectivas(form.horaInicio, form.horaFin);
+
+            if (isNaN(horas) || horas <= 0) {
+                notificationService.notifyError('La hora de fin debe ser posterior a la hora de inicio');
+                return;
+            }
+
+        // Validación cliente: no permitir fechas futuras salvo ENCARGADO
+        const selectedDate = new Date(form.fechaRegistro);
+        const today = new Date(todayStr + 'T23:59:59');
+        if (form.fechaRegistro && selectedDate > today) {
+            const role = (user as any)?.rol || '';
+            if (role !== 'ENCARGADO') {
+                notificationService.notifyError('No se permiten fechas futuras');
+                return;
+            }
+        }
 
         try {
             // Buscar un formulario existente para el usuario
@@ -278,9 +300,23 @@ const DashboardEstudiante: React.FC = () => {
             // Mostrar mensaje de éxito
             alert(editing ? '✅ Registro actualizado exitosamente' : '✅ Registro creado exitosamente. Está pendiente de validación por el encargado.');
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error al guardar registro:', error);
-            alert('Error al guardar el registro. Por favor, inténtalo de nuevo.');
+            // Manejo de errores: 409 conflicto, 400 validación, otros
+            if (error?.response) {
+                const status = error.response.status;
+                const data = error.response.data;
+                const msg = data && (data.message || (typeof data === 'string' ? data : null))
+                    ? (data.message || data)
+                    : 'Error al guardar el registro.';
+
+                if (status === 409 || status === 400) {
+                    notificationService.notifyError(String(msg));
+                    return;
+                }
+            }
+
+            notificationService.notifyError('Error al guardar el registro. Por favor, inténtalo de nuevo.');
         }
     };
 
@@ -548,6 +584,7 @@ const DashboardEstudiante: React.FC = () => {
                                         type="date"
                                         value={form.fechaRegistro}
                                         onChange={(e) => setForm(prev => ({ ...prev, fechaRegistro: e.target.value }))}
+                                        max={todayStr}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
                                     />
@@ -563,6 +600,8 @@ const DashboardEstudiante: React.FC = () => {
                                             type="time"
                                             value={form.horaInicio}
                                             onChange={(e) => setForm(prev => ({ ...prev, horaInicio: e.target.value }))}
+                                            min="00:00"
+                                            max="23:59"
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             required
                                         />
@@ -575,6 +614,8 @@ const DashboardEstudiante: React.FC = () => {
                                             type="time"
                                             value={form.horaFin}
                                             onChange={(e) => setForm(prev => ({ ...prev, horaFin: e.target.value }))}
+                                            min="00:00"
+                                            max="23:59"
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             required
                                         />

@@ -16,6 +16,7 @@ import com.pnc.project.service.FormularioService;
 import com.pnc.project.service.Registro_HoraService;
 import com.pnc.project.service.UsuarioService;
 import com.pnc.project.utils.enums.EstadoFormulario;
+import com.pnc.project.utils.enums.RolNombre;
 import com.pnc.project.utils.mappers.ActividadMapper;
 import com.pnc.project.utils.mappers.FormularioMapper;
 import com.pnc.project.utils.mappers.Registro_HoraMapper;
@@ -72,9 +73,46 @@ public class Registro_HoraServiceImpl implements Registro_HoraService {
         Formulario formulario = FormularioMapper.toEntity(formularioDto);
 
         Registro_Hora entity = Registro_HoraMapper.toEntityCreate(registroHora, usuario, actividad, formulario);
-        
-        System.out.println("Fecha en entidad: " + entity.getFechaRegistro());
-        System.out.println("Tipo de fecha en entidad: " + (entity.getFechaRegistro() != null ? entity.getFechaRegistro().getClass().getName() : "null"));
+
+        // Validación de fecha futura: solo usuarios con rol ENCARGADO pueden crear fechas futuras
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (entity.getFechaRegistro() != null && entity.getFechaRegistro().isAfter(today)) {
+            if (usuarioDto == null || usuarioDto.getRol() != RolNombre.ENCARGADO) {
+                throw new IllegalArgumentException("No se permiten fechas futuras");
+            }
+        }
+
+        // Validaciones de formato y rango de horas
+        if (entity.getHoraInicio() == null || entity.getHoraFin() == null) {
+            throw new IllegalArgumentException("Hora inicio y hora fin son requeridas");
+        }
+
+        // Asegurar rango 00:00 - 23:59:59
+        java.time.LocalTime min = java.time.LocalTime.MIN; // 00:00
+        java.time.LocalTime max = java.time.LocalTime.of(23, 59, 59);
+        if (entity.getHoraInicio().isBefore(min) || entity.getHoraInicio().isAfter(max) ||
+                entity.getHoraFin().isBefore(min) || entity.getHoraFin().isAfter(max)) {
+            throw new IllegalArgumentException("Horas fuera de rango permitido (00:00 - 23:59)");
+        }
+
+        long minutes = java.time.Duration.between(entity.getHoraInicio(), entity.getHoraFin()).toMinutes();
+        if (minutes < 0) {
+            throw new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio");
+        }
+
+        // Calcular horas efectivas y asignar (BigDecimal con 2 decimales)
+        java.math.BigDecimal horas = java.math.BigDecimal.valueOf(minutes)
+                .divide(java.math.BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP);
+        entity.setHorasEfectivas(horas);
+
+        // Verificación previa para evitar registros duplicados (usuario, actividad, fecha, hora_inicio)
+        if (entity.getUsuario() != null && entity.getActividad() != null && entity.getFechaRegistro() != null && entity.getHoraInicio() != null) {
+            boolean exists = registro_HoraRepository.existsByUsuarioAndActividadAndFechaRegistroAndHoraInicio(
+                    entity.getUsuario(), entity.getActividad(), entity.getFechaRegistro(), entity.getHoraInicio());
+            if (exists) {
+                throw new com.pnc.project.exception.DuplicateFieldException("registro_hora", "Ya existe un registro con la misma fecha, actividad y hora de inicio para este usuario");
+            }
+        }
 
         Registro_Hora savedEntity = registro_HoraRepository.save(entity);
         System.out.println("Fecha guardada: " + savedEntity.getFechaRegistro());
@@ -101,9 +139,35 @@ public class Registro_HoraServiceImpl implements Registro_HoraService {
         Formulario formulario = FormularioMapper.toEntity(formularioDto);
 
         existente.setFechaRegistro(registroHora.getFechaRegistro());
+        // Validación de fecha futura en update: solo ENCARGADO puede establecer fechas futuras
+        java.time.LocalDate todayUpd = java.time.LocalDate.now();
+        if (registroHora.getFechaRegistro() != null && registroHora.getFechaRegistro().isAfter(todayUpd)) {
+            // obtener rol del usuario a partir del DTO
+            UsuarioResponse usuarioDtoUpd = usuarioService.findByCodigo(registroHora.getCodigoUsuario());
+            if (usuarioDtoUpd == null || usuarioDtoUpd.getRol() != RolNombre.ENCARGADO) {
+                throw new IllegalArgumentException("No se permiten fechas futuras");
+            }
+        }
         existente.setHoraInicio(registroHora.getHoraInicio());
         existente.setHoraFin(registroHora.getHoraFin());
-        existente.setHorasEfectivas(registroHora.getHorasEfectivas());
+        // Validar y recalcular horas efectivas en backend
+        if (registroHora.getHoraInicio() == null || registroHora.getHoraFin() == null) {
+            throw new IllegalArgumentException("Hora inicio y hora fin son requeridas");
+        }
+        java.time.LocalTime min = java.time.LocalTime.MIN;
+        java.time.LocalTime max = java.time.LocalTime.of(23, 59, 59);
+        if (registroHora.getHoraInicio().isBefore(min) || registroHora.getHoraInicio().isAfter(max) ||
+                registroHora.getHoraFin().isBefore(min) || registroHora.getHoraFin().isAfter(max)) {
+            throw new IllegalArgumentException("Horas fuera de rango permitido (00:00 - 23:59)");
+        }
+
+        long minutesUpd = java.time.Duration.between(registroHora.getHoraInicio(), registroHora.getHoraFin()).toMinutes();
+        if (minutesUpd < 0) {
+            throw new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio");
+        }
+        java.math.BigDecimal horasUpd = java.math.BigDecimal.valueOf(minutesUpd)
+                .divide(java.math.BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP);
+        existente.setHorasEfectivas(horasUpd);
         existente.setAula(registroHora.getAula());
         existente.setUsuario(usuario);
         existente.setActividad(actividad);
