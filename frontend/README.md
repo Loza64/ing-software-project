@@ -122,7 +122,7 @@ Proyecto desarrollado bajo arquitectura **N-Capas**, con separación de responsa
 
 ---
 
-## 🧪 Links de deployments
+## 🧪 Links de deployments, api y diagrama er
 
 > [Frontend](https://ing-software-project.vercel.app/)
 
