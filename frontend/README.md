@@ -102,7 +102,7 @@ Proyecto desarrollado bajo arquitectura **N-Capas**, con separación de responsa
 
 ## 📄 Documentación
 
-- Documentación completa del API REST mediante Confluence.
+- Documentación completa del API REST mediante Postmant.
 - Diagrama Entidad-Relación de la base de datos.
 - Descripción funcional y técnica del sistema.
 
@@ -125,6 +125,11 @@ Proyecto desarrollado bajo arquitectura **N-Capas**, con separación de responsa
 ## 🧪 Links de deployments
 
 > [Frontend](https://ing-software-project.vercel.app/)
+
 > [Backend](https://spring-rehosar.fly.dev/)
+
+> [POSTMAN](https://grey-flare-657894.postman.co/workspace/My-Workspace~cc82f0d1-a7ca-4091-8116-bbd72a16d802/collection/19635488-aecd6434-a6dc-40f0-abae-bfe949e4b5e6?action=share&creator=19635488&active-environment=19635488-8f9c3486-bd72-4950-b729-dd084c3903a7)
+
+>[DIAGRAMA_ER](https://drive.google.com/file/d/1buf6y2j1gHlcx6ueR1WxWp3zqs65m6Ke/view?usp=sharing)
 ---
 
